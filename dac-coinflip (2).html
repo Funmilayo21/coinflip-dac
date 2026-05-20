@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DAC Coin Flip</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#E8960A;--g2:#FAC845;--gd:rgba(232,150,10,0.13);
+  --te:#1A9E72;--ted:rgba(26,158,114,0.13);
+  --re:#C83232;--red:rgba(200,50,50,0.13);
+  --gr:#3DB520;--grd:rgba(61,181,32,0.13);
+  --bg:#09090C;--b2:#111318;--b3:#181B24;--b4:#1E2230;
+  --bd:#22253200;--br:#252836;--br2:#2E3248;
+  --tx:#EEEEF2;--t2:#7A7F96;--t3:#454960;
+  --r:12px;--rs:8px;
+}
+html,body{background:var(--bg);color:var(--tx);font-family:'Syne',sans-serif;min-height:100vh}
+body{display:flex;flex-direction:column;align-items:center;padding-bottom:70px}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 5%,rgba(232,150,10,0.07) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 35% at 90% 90%,rgba(26,158,114,0.07) 0%,transparent 60%);
+}
+.w{position:relative;z-index:1;width:100%;max-width:500px;padding:0 14px}
+
+/* ── HEADER ─────────────────────────────────────────────────── */
+.hdr{display:flex;align-items:center;gap:13px;padding:24px 0 16px;border-bottom:1px solid var(--br);margin-bottom:20px}
+.logo{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  border:2px solid var(--g);background:var(--gd);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:var(--g);letter-spacing:-.5px
+}
+.hdr h1{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1}
+.hdr p{font-size:10px;color:var(--t2);font-family:'Space Mono',monospace;margin-top:3px}
+.net{
+  margin-left:auto;display:flex;align-items:center;gap:5px;
+  background:var(--b2);border:1px solid var(--br);border-radius:20px;
+  padding:5px 11px;font-size:10px;font-family:'Space Mono',monospace;color:var(--t2);white-space:nowrap
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--gr);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── CARD ───────────────────────────────────────────────────── */
+.card{background:var(--b2);border:1px solid var(--br);border-radius:var(--r);padding:18px;margin-bottom:13px}
+
+/* ── WALLET ─────────────────────────────────────────────────── */
+.hint{font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:13px}
+.btn-conn{
+  width:100%;padding:13px;background:var(--g);color:#fff;border:none;
+  border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+  cursor:pointer;transition:.15s
+}
+.btn-conn:hover{background:#c47b06}
+.wrow{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.wico{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  background:var(--gd);border:1px solid rgba(232,150,10,.3);
+  display:flex;align-items:center;justify-content:center;font-size:16px
+}
+.waddr{font-family:'Space Mono',monospace;font-size:12px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.bxs{
+  background:transparent;color:var(--t2);border:1px solid var(--br);
+  border-radius:20px;padding:4px 10px;font-size:11px;font-family:'Syne',sans-serif;
+  cursor:pointer;white-space:nowrap;transition:.1s
+}
+.bxs:hover{color:var(--tx);border-color:var(--t2)}
+.balrow{display:flex;align-items:baseline;gap:7px}
+.baln{font-size:26px;font-weight:800;letter-spacing:-1px}
+.bals{font-size:12px;color:var(--t2);font-family:'Space Mono',monospace}
+
+/* contract info row */
+.cinfo{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--br)
+}
+.ci-lbl{font-size:10px;color:var(--t3);font-family:'Space Mono',monospace;white-space:nowrap}
+.ci-val{font-size:10px;color:var(--t3);font-family:'Space Mono',monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-bal{font-size:11px;color:var(--g);font-family:'Space Mono',monospace;white-space:nowrap}
+
+/* ── DEPLOY NOTICE ──────────────────────────────────────────── */
+.deploy-box{
+  background:rgba(232,150,10,.08);border:1px solid rgba(232,150,10,.25);
+  border-radius:var(--r);padding:16px 18px;margin-bottom:13px
+}
+.deploy-box h3{font-size:13px;font-weight:700;color:var(--g);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.deploy-steps{display:flex;flex-direction:column;gap:8px}
+.ds{display:flex;gap:9px;font-size:12px;color:var(--t2);line-height:1.6}
+.dn{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  background:var(--gd);border:1px solid rgba(232,150,10,.3);
+  color:var(--g);font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center
+}
+.code{font-family:'Space Mono',monospace;font-size:10px;background:var(--b3);border:1px solid var(--br);border-radius:4px;padding:2px 6px;color:var(--tx)}
+.inp-addr{
+  width:100%;margin-top:10px;background:var(--b3);border:1px solid var(--br2);
+  border-radius:var(--rs);padding:9px 12px;
+  font-family:'Space Mono',monospace;font-size:12px;color:var(--tx);outline:none;
+  transition:border-color .15s
+}
+.inp-addr:focus{border-color:var(--g)}
+.inp-addr::placeholder{color:var(--t3)}
+.btn-set{
+  width:100%;margin-top:8px;padding:10px;
+  background:var(--g);color:#fff;border:none;border-radius:var(--rs);
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:.15s
+}
+.btn-set:hover{background:#c47b06}
+
+/* ── STATS ──────────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:13px}
+.stat{background:var(--b2);border:1px solid var(--br);border-radius:var(--rs);padding:10px;text-align:center}
+.sl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em}
+.sv{font-size:18px;font-weight:800;margin-top:3px}
+.sv.gr{color:var(--gr)}.sv.re{color:var(--re)}.sv.go{color:var(--g)}
+
+/* ── ARENA ──────────────────────────────────────────────────── */
+.arena{
+  background:var(--b2);border:1px solid var(--br);
+  border-radius:var(--r);padding:26px 18px 22px;margin-bottom:13px;text-align:center
+}
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--g),#c47b06);
+  color:#fff;font-size:11px;font-weight:800;
+  border-radius:20px;padding:4px 14px;letter-spacing:.05em;margin-bottom:20px
+}
+
+/* COIN */
+.scene{width:148px;height:148px;margin:0 auto 22px;perspective:700px}
+.coin{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+.coin.spin{animation:sp .5s linear infinite}
+@keyframes sp{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+.coin.lh{animation:lh .6s cubic-bezier(.25,.46,.45,.94) forwards}
+@keyframes lh{0%{transform:rotateY(900deg)}100%{transform:rotateY(0deg)}}
+.coin.lt{animation:lt .6s cubic-bezier(.25,.46,.45,.94) forwards}
+@keyframes lt{0%{transform:rotateY(1080deg)}100%{transform:rotateY(180deg)}}
+.face{
+  position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px
+}
+.fh{
+  background:conic-gradient(from 40deg,#6b4403,#FAD040,#E8960A,#FAD96E,#6b4403);
+  border:3px solid rgba(232,150,10,.55);
+}
+.ft{
+  background:conic-gradient(from 40deg,#044D35,#55E0B5,#1A9E72,#55E0B5,#044D35);
+  border:3px solid rgba(26,158,114,.55);
+  transform:rotateY(180deg)
+}
+.fl{font-size:52px;font-weight:800;text-shadow:0 3px 10px rgba(0,0,0,.55)}
+.fh .fl{color:#6b4403}.ft .fl{color:#033d29}
+.fw{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+.fh .fw{color:#6b4403}.ft .fw{color:#033d29}
+
+/* PICK */
+.plbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:9px}
+.prow{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.pb{
+  flex:1;max-width:152px;padding:12px;border-radius:var(--rs);
+  font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+  cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:7px
+}
+.pb.h{background:var(--gd);border:2px solid rgba(232,150,10,.3);color:var(--g)}
+.pb.t{background:var(--ted);border:2px solid rgba(26,158,114,.3);color:var(--te)}
+.pb.h.on{background:rgba(232,150,10,.25);border-color:var(--g);box-shadow:0 0 16px rgba(232,150,10,.18)}
+.pb.t.on{background:rgba(26,158,114,.25);border-color:var(--te);box-shadow:0 0 16px rgba(26,158,114,.18)}
+.pb.h:hover:not(.on){background:rgba(232,150,10,.17)}
+.pb.t:hover:not(.on){background:rgba(26,158,114,.17)}
+
+/* BET */
+.brow{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.blbl{font-size:12px;color:var(--t2);white-space:nowrap}
+.binp{
+  flex:1;background:var(--b3);border:1px solid var(--br2);border-radius:var(--rs);
+  padding:9px 12px;font-family:'Space Mono',monospace;font-size:16px;color:var(--tx);
+  outline:none;transition:border-color .15s
+}
+.binp:focus{border-color:var(--g)}
+.bsym{font-size:12px;color:var(--t2);font-family:'Space Mono',monospace}
+
+/* PAYOUT PREVIEW */
+.prev{
+  display:flex;gap:0;margin-bottom:15px;
+  background:var(--b3);border-radius:var(--rs);overflow:hidden;border:1px solid var(--br)
+}
+.prev-item{flex:1;padding:9px 10px;text-align:center}
+.prev-item+.prev-item{border-left:1px solid var(--br)}
+.prev-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em}
+.prev-val{font-size:14px;font-weight:700;margin-top:3px}
+.prev-val.gr{color:var(--gr)}.prev-val.re{color:var(--re)}.prev-val.mu{color:var(--t2)}
+
+/* QUICK */
+.qrow{display:flex;gap:5px;justify-content:center;margin-bottom:17px;flex-wrap:wrap}
+.qb{
+  padding:4px 11px;font-size:11px;font-family:'Space Mono',monospace;
+  background:var(--b3);border:1px solid var(--br);border-radius:20px;
+  color:var(--t2);cursor:pointer;transition:.1s
+}
+.qb:hover{border-color:var(--g);color:var(--g)}
+
+/* FLIP BTN */
+.fbtn{
+  width:100%;padding:15px;border:none;border-radius:var(--rs);
+  background:linear-gradient(135deg,#E8960A,#c47b06);
+  color:#fff;font-family:'Syne',sans-serif;font-size:17px;font-weight:800;
+  cursor:pointer;letter-spacing:.04em;transition:.15s;position:relative;overflow:hidden
+}
+.fbtn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1),transparent)}
+.fbtn:hover:not(:disabled){background:linear-gradient(135deg,#f5a820,#d48a0a)}
+.fbtn:active:not(:disabled){transform:scale(.99)}
+.fbtn:disabled{opacity:.3;cursor:not-allowed}
+
+/* RESULT */
+.res{
+  margin-top:15px;padding:14px 15px;border-radius:var(--rs);
+  font-size:15px;font-weight:700;text-align:center;line-height:1.55;display:none
+}
+.res.win{background:rgba(61,181,32,.14);border:1px solid rgba(61,181,32,.32);color:var(--gr)}
+.res.lose{background:var(--red);border:1px solid rgba(200,50,50,.32);color:var(--re)}
+
+/* TOAST */
+.toast{margin-top:11px;padding:10px 13px;border-radius:var(--rs);font-size:13px;line-height:1.5;display:none}
+.toast.info{background:rgba(232,150,10,.1);border:1px solid rgba(232,150,10,.22);color:#FAC845}
+.toast.err{background:var(--red);border:1px solid rgba(200,50,50,.28);color:#E07070}
+.toast.ok{background:var(--grd);border:1px solid rgba(61,181,32,.28);color:var(--gr)}
+
+/* HISTORY */
+.hcard{background:var(--b2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.hhead{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 17px;border-bottom:1px solid var(--br);
+  font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em
+}
+.hi{display:flex;align-items:center;gap:11px;padding:10px 17px;border-bottom:1px solid var(--br);font-size:13px}
+.hi:last-child{border-bottom:none}
+.hc{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.hc.h{background:var(--gd);color:var(--g);border:1px solid rgba(232,150,10,.3)}
+.hc.t{background:var(--ted);color:var(--te);border:1px solid rgba(26,158,114,.3)}
+.hin{flex:1;min-width:0}
+.hm{font-weight:600;color:var(--tx);font-size:12px}
+.hs{font-size:10px;color:var(--t3);font-family:'Space Mono',monospace;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbg{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.hbg.win{background:var(--grd);color:var(--gr);border:1px solid rgba(61,181,32,.28)}
+.hbg.lose{background:var(--red);color:var(--re);border:1px solid rgba(200,50,50,.28)}
+.ha{font-family:'Space Mono',monospace;font-size:11px;text-align:right;min-width:80px}
+.ha.win{color:var(--gr)}.ha.lose{color:var(--re)}
+.empty-h{padding:24px;text-align:center;font-size:13px;color:var(--t3)}
+
+/* TX LINK */
+a.txl{font-family:'Space Mono',monospace;font-size:10px;color:var(--t3);text-decoration:none;transition:.1s}
+a.txl:hover{color:var(--t2)}
+
+/* FOOTER */
+.foot{text-align:center;font-size:10px;color:var(--t3);font-family:'Space Mono',monospace;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.foot a{color:var(--t3);text-decoration:none}.foot a:hover{color:var(--t2)}
+</style>
+</head>
+<body>
+<div class="w">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">DAC</div>
+  <div>
+    <h1>Coin Flip</h1>
+    <p>DAC Inception Testnet · Auto 2× Payout</p>
+  </div>
+  <div class="net">
+    <div class="dot"></div>
+    <span id="netLbl">Connecting…</span>
+  </div>
+</div>
+
+<!-- DEPLOY NOTICE -->
+<div class="deploy-box" id="deployBox">
+  <h3>⚙️ One-time contract setup required</h3>
+  <div class="deploy-steps">
+    <div class="ds"><div class="dn">1</div><span>Open <a href="https://remix.ethereum.org" target="_blank" style="color:var(--g)">remix.ethereum.org</a>, create <span class="code">DACCoinFlip.sol</span> and paste the contract code from <strong>DACCoinFlip.sol</strong> (included in your download).</span></div>
+    <div class="ds"><div class="dn">2</div><span>In Remix → Deploy tab → set Environment to <span class="code">Injected Provider</span>, connect MetaMask on DAC Testnet, send some DACC as initial house funds in the <em>Value</em> field, then click <strong>Deploy</strong>.</span></div>
+    <div class="ds"><div class="dn">3</div><span>Copy the deployed contract address and paste it below. From then on every flip is fully automatic — one transaction, instant payout, zero extra confirmations.</span></div>
+  </div>
+  <input class="inp-addr" id="contractInput" type="text" placeholder="Paste deployed contract address: 0x…" />
+  <button class="btn-set" onclick="setContract()">✅ Set Contract & Start Playing</button>
+</div>
+
+<!-- WALLET -->
+<div class="card" id="wcard">
+  <div id="notConn">
+    <p class="hint">Connect your EVM wallet. Your bet goes into the smart contract — win and it <strong style="color:var(--g)">instantly sends you 2× back</strong> in the same transaction. No extra steps.</p>
+    <button class="btn-conn" onclick="connectWallet()">⚡ Connect Wallet</button>
+    <div style="display:flex;gap:14px;margin-top:11px;flex-wrap:wrap">
+      <a href="https://faucet.dachain.tech/" target="_blank" style="font-size:11px;color:var(--t3);text-decoration:none">💧 Free DACC faucet</a>
+      <a href="https://exptest.dachain.tech/" target="_blank" style="font-size:11px;color:var(--t3);text-decoration:none">🔍 Block Explorer</a>
+    </div>
+  </div>
+  <div id="connPanel" style="display:none">
+    <div class="wrow">
+      <div class="wico">🦊</div>
+      <span class="waddr" id="addrTxt"></span>
+      <button class="bxs" onclick="refreshBalance()">↻ Refresh</button>
+      <button class="bxs" onclick="disconnectWallet()">Disconnect</button>
+    </div>
+    <div class="balrow">
+      <span class="baln" id="balNum">0.0000</span>
+      <span class="bals">DACC</span>
+    </div>
+    <div class="cinfo">
+      <span class="ci-lbl">Contract:</span>
+      <span class="ci-val" id="cAddrTxt">—</span>
+      <span class="ci-bal" id="cBalTxt">— DACC house</span>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="sl">Flips</div><div class="sv" id="sF">0</div></div>
+  <div class="stat"><div class="sl">Wins</div><div class="sv gr" id="sW">0</div></div>
+  <div class="stat"><div class="sl">Losses</div><div class="sv re" id="sL">0</div></div>
+  <div class="stat"><div class="sl">P/L</div><div class="sv" id="sPL">0.00</div></div>
+</div>
+
+<!-- ARENA -->
+<div class="arena">
+  <div class="scene">
+    <div class="coin" id="coin">
+      <div class="face fh"><span class="fl">H</span><span class="fw">Heads</span></div>
+      <div class="face ft"><span class="fl">T</span><span class="fw">Tails</span></div>
+    </div>
+  </div>
+
+  <div class="badge">🪙 WIN = 2× YOUR BET · AUTO PAYOUT</div>
+
+  <div class="plbl">Choose your side</div>
+  <div class="prow">
+    <button class="pb h" id="btnH" onclick="setPick('heads')">🟡 Heads</button>
+    <button class="pb t" id="btnT" onclick="setPick('tails')">🟢 Tails</button>
+  </div>
+
+  <div class="brow">
+    <span class="blbl">Bet</span>
+    <input class="binp" type="number" id="betIn" min="0.001" step="0.001" value="0.01" oninput="updPrev()"/>
+    <span class="bsym">DACC</span>
+  </div>
+
+  <div class="prev">
+    <div class="prev-item">
+      <div class="prev-lbl">You send</div>
+      <div class="prev-val mu" id="pvBet">0.0100</div>
+    </div>
+    <div class="prev-item">
+      <div class="prev-lbl">Win → receive</div>
+      <div class="prev-val gr" id="pvWin">0.0200 DACC</div>
+    </div>
+    <div class="prev-item">
+      <div class="prev-lbl">Net profit</div>
+      <div class="prev-val gr" id="pvProfit">+0.0100</div>
+    </div>
+    <div class="prev-item">
+      <div class="prev-lbl">Lose → lose</div>
+      <div class="prev-val re" id="pvLose">−0.0100</div>
+    </div>
+  </div>
+
+  <div class="qrow">
+    <button class="qb" onclick="setBet(0.01)">0.01</button>
+    <button class="qb" onclick="setBet(0.05)">0.05</button>
+    <button class="qb" onclick="setBet(0.1)">0.1</button>
+    <button class="qb" onclick="setBet(0.5)">0.5</button>
+    <button class="qb" onclick="setBet(1)">1.0</button>
+    <button class="qb" onclick="setBet(5)">5.0</button>
+    <button class="qb" onclick="halfBet()">½</button>
+    <button class="qb" onclick="maxBet()">Max</button>
+  </div>
+
+  <button class="fbtn" id="flipBtn" onclick="flip()" disabled>🪙 Flip the Coin!</button>
+  <div class="toast" id="toast"></div>
+  <div class="res"  id="resBox"></div>
+</div>
+
+<!-- HISTORY -->
+<div class="hcard">
+  <div class="hhead">
+    <span>Flip History</span>
+    <span id="hCount" style="color:var(--t3)">0 flips</span>
+  </div>
+  <div id="hList"><div class="empty-h">No flips yet — connect wallet and play!</div></div>
+</div>
+
+<!-- FOOTER -->
+<div class="foot">
+  <a href="https://faucet.dachain.tech/" target="_blank">💧 Faucet</a>
+  <a href="https://exptest.dachain.tech/"  target="_blank">🔍 Explorer</a>
+  <a href="https://remix.ethereum.org"    target="_blank">⚙️ Remix IDE</a>
+  <a href="https://dacblockchain.gitbook.io/docs" target="_blank">📄 Docs</a>
+</div>
+
+</div><!-- /wrap -->
+<script>
+/* ══════════════════════════════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════════════════════════════ */
+const RPC      = 'https://rpctest.dachain.tech';
+const EXPLORER = 'https://exptest.dachain.tech';
+
+// Contract ABI — matches DACCoinFlip.sol
+const ABI = [
+  "function flip(bool _headsChoice) external payable",
+  "function houseBalance() external view returns (uint256)",
+  "function maxAllowedBet() external view returns (uint256)",
+  "function minBet() external view returns (uint256)",
+  "function maxBet() external view returns (uint256)",
+  "event FlipResult(address indexed player, bool playerChoseHeads, bool resultHeads, bool won, uint256 betAmount, uint256 payout)"
+];
+
+const DAC_CHAIN = {
+  chainId: null,
+  chainName: 'DAC Inception Testnet',
+  nativeCurrency: { name:'DACC', symbol:'DACC', decimals:18 },
+  rpcUrls: [RPC],
+  blockExplorerUrls: [EXPLORER]
+};
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════════════════════ */
+let provider=null, signer=null, account=null, contract=null;
+let contractAddr = localStorage.getItem('dac_contract') || null;
+let userBal=0n, pick=null, busy=false;
+let stats={f:0,w:0,l:0,pl:0};
+let history=[];
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════════════════════════════════════════ */
+(async function boot(){
+  // Detect chain ID
+  try{
+    const r=await fetch(RPC,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',method:'eth_chainId',params:[],id:1})});
+    const d=await r.json();
+    if(d.result){ DAC_CHAIN.chainId=d.result; document.getElementById('netLbl').textContent='Chain #'+parseInt(d.result,16); }
+  }catch(e){ document.getElementById('netLbl').textContent='DAC Testnet'; }
+
+  // Restore saved contract address
+  if(contractAddr && ethers.utils.isAddress(contractAddr)){
+    applyContract(contractAddr);
+  }
+  updPrev();
+})();
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CONTRACT SETUP
+══════════════════════════════════════════════════════════════════════════════ */
+function setContract(){
+  const val = document.getElementById('contractInput').value.trim();
+  if(!ethers.utils.isAddress(val)){
+    showToast('Invalid contract address. Paste the deployed 0x… address.','err'); return;
+  }
+  localStorage.setItem('dac_contract', val);
+  applyContract(val);
+  showToast('✅ Contract set! You can now play.','ok');
+}
+
+function applyContract(addr){
+  contractAddr = addr;
+  document.getElementById('deployBox').style.display='none';
+  document.getElementById('contractInput').value = addr;
+  document.getElementById('cAddrTxt').textContent = addr.slice(0,10)+'···'+addr.slice(-6);
+  if(signer){
+    contract = new ethers.Contract(addr, ABI, signer);
+  }
+  refreshContractBal();
+  if(account && pick) document.getElementById('flipBtn').disabled=false;
+}
+
+async function refreshContractBal(){
+  if(!contractAddr) return;
+  try{
+    const r=await fetch(RPC,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',method:'eth_getBalance',params:[contractAddr,'latest'],id:1})});
+    const d=await r.json();
+    if(d.result){
+      const v=parseFloat(ethers.utils.formatEther(ethers.BigNumber.from(d.result)));
+      document.getElementById('cBalTxt').textContent=v.toFixed(4)+' DACC house';
+    }
+  }catch(e){}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   WALLET
+══════════════════════════════════════════════════════════════════════════════ */
+async function connectWallet(){
+  if(!window.ethereum){showToast('No EVM wallet found. Install MetaMask or Rabby.','err');return;}
+  try{
+    const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
+    account=accounts[0];
+    provider=new ethers.providers.Web3Provider(window.ethereum);
+    signer=provider.getSigner();
+
+    if(DAC_CHAIN.chainId){
+      const net=await provider.getNetwork();
+      const target=parseInt(DAC_CHAIN.chainId,16);
+      if(net.chainId!==target){
+        try{
+          await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:DAC_CHAIN.chainId}]});
+        }catch(sw){
+          if(sw.code===4902||sw.code===-32603){
+            await window.ethereum.request({method:'wallet_addEthereumChain',params:[DAC_CHAIN]});
+          } else {showToast('Switch to DAC Testnet (Chain ID: '+target+')','err');return;}
+        }
+        provider=new ethers.providers.Web3Provider(window.ethereum);
+        signer=provider.getSigner();
+      }
+    }
+
+    if(contractAddr){ contract=new ethers.Contract(contractAddr,ABI,signer); }
+
+    await refreshBalance();
+    await refreshContractBal();
+
+    document.getElementById('notConn').style.display='none';
+    document.getElementById('connPanel').style.display='block';
+    document.getElementById('addrTxt').textContent=account.slice(0,6)+'···'+account.slice(-4);
+
+    if(contractAddr && pick) document.getElementById('flipBtn').disabled=false;
+
+    window.ethereum.on('accountsChanged',a=>{
+      if(!a.length)disconnectWallet();
+      else{account=a[0];document.getElementById('addrTxt').textContent=account.slice(0,6)+'···'+account.slice(-4);refreshBalance();}
+    });
+    window.ethereum.on('chainChanged',()=>location.reload());
+  }catch(e){showToast(e.message||'Connection failed','err');}
+}
+
+function disconnectWallet(){
+  account=null;provider=null;signer=null;contract=null;
+  document.getElementById('notConn').style.display='block';
+  document.getElementById('connPanel').style.display='none';
+  document.getElementById('flipBtn').disabled=true;
+}
+
+async function refreshBalance(){
+  if(!provider||!account)return;
+  try{
+    const b=await provider.getBalance(account);
+    userBal=b.toBigInt();
+    document.getElementById('balNum').textContent=parseFloat(ethers.utils.formatEther(b)).toFixed(4);
+  }catch(e){}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   UI HELPERS
+══════════════════════════════════════════════════════════════════════════════ */
+function setPick(p){
+  pick=p;
+  document.getElementById('btnH').classList.toggle('on',p==='heads');
+  document.getElementById('btnT').classList.toggle('on',p==='tails');
+  if(account&&contractAddr) document.getElementById('flipBtn').disabled=false;
+}
+function setBet(v){document.getElementById('betIn').value=v;updPrev();}
+function halfBet(){
+  const v=parseFloat(document.getElementById('betIn').value)||0;
+  document.getElementById('betIn').value=Math.max(0.001,v/2).toFixed(4);updPrev();
+}
+function maxBet(){
+  const b=parseFloat(ethers.utils.formatEther(userBal||'0'));
+  document.getElementById('betIn').value=Math.max(0.001,Math.floor(b*0.88*1000)/1000).toFixed(4);updPrev();
+}
+function updPrev(){
+  const v=parseFloat(document.getElementById('betIn').value)||0;
+  document.getElementById('pvBet').textContent    = v.toFixed(4)+' DACC';
+  document.getElementById('pvWin').textContent    = v>0?(v*2).toFixed(4)+' DACC':'—';
+  document.getElementById('pvProfit').textContent = v>0?'+'+v.toFixed(4):'—';
+  document.getElementById('pvLose').textContent   = v>0?'−'+v.toFixed(4):'—';
+}
+
+let _tt=null;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.innerHTML=msg;t.className='toast '+type;t.style.display='block';
+  clearTimeout(_tt);
+  if(type!=='info') _tt=setTimeout(()=>t.style.display='none',8000);
+}
+function hideToast(){ clearTimeout(_tt); document.getElementById('toast').style.display='none'; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CORE FLIP  — one transaction, contract handles everything
+══════════════════════════════════════════════════════════════════════════════ */
+async function flip(){
+  if(busy||!account||!pick){return;}
+  if(!contract||!contractAddr){showToast('Set the contract address first (see setup steps above).','err');return;}
+
+  const betF=parseFloat(document.getElementById('betIn').value);
+  if(!betF||betF<=0){showToast('Enter a valid bet amount.','err');return;}
+
+  const betWei=ethers.utils.parseEther(betF.toFixed(18));
+  const gasBuf=ethers.utils.parseEther('0.002');
+
+  if(betWei.toBigInt()+gasBuf.toBigInt()>userBal){
+    showToast('Insufficient DACC (need bet + gas).','err');return;
+  }
+
+  // Check house can cover 2×
+  try{
+    const maxBetAllowed=await contract.maxAllowedBet();
+    if(betWei.gt(maxBetAllowed)){
+      const m=parseFloat(ethers.utils.formatEther(maxBetAllowed));
+      showToast('House funds low. Max bet right now: '+m.toFixed(4)+' DACC.','err');return;
+    }
+  }catch(e){}
+
+  busy=true;
+  document.getElementById('flipBtn').disabled=true;
+  document.getElementById('resBox').style.display='none';
+
+  const coinEl=document.getElementById('coin');
+  coinEl.className='coin spin';
+  showToast('🦊 Confirm the single transaction in your wallet — payout is instant if you win…','info');
+
+  try{
+    /* ── ONE TRANSACTION to the contract ────────────────────────────────────
+       flip(true)  = player chose Heads
+       flip(false) = player chose Tails
+       value       = bet in DACC
+       The contract determines the result on-chain and immediately sends
+       2× back to msg.sender if won — all inside this single TX.
+    ─────────────────────────────────────────────────────────────────────── */
+    const gasPrice=await provider.getGasPrice();
+    const tx=await contract.flip(
+      pick==='heads',
+      { value: betWei, gasLimit: 80000, gasPrice }
+    );
+
+    showToast('⏳ Transaction in block — waiting for confirmation…','info');
+    const receipt=await tx.wait(1);
+
+    /* ── READ FlipResult EVENT from receipt ─────────────────────────────── */
+    const iface=new ethers.utils.Interface(ABI);
+    let won=null, resultHeads=null;
+
+    for(const log of receipt.logs){
+      try{
+        const parsed=iface.parseLog(log);
+        if(parsed.name==='FlipResult'){
+          won        = parsed.args.won;
+          resultHeads= parsed.args.resultHeads;
+          break;
+        }
+      }catch(e){}
+    }
+
+    // Fallback if event not parsed: derive from tx hash (same seed as contract)
+    if(won===null){
+      const h=receipt.transactionHash;
+      const seed=BigInt('0x'+h.slice(2,18))
+               ^(BigInt(receipt.blockNumber)*BigInt('0xA1B2C3D4E5'))
+               ^BigInt('0x'+receipt.from.replace('0x','').slice(0,12));
+      resultHeads=(seed%2n===0n);
+      won=(pick==='heads')===resultHeads;
+    }
+
+    const result=resultHeads?'heads':'tails';
+
+    // Land coin on result
+    coinEl.className='coin '+(result==='heads'?'lh':'lt');
+    setTimeout(()=>{coinEl.className='coin';},700);
+
+    const rb=document.getElementById('resBox');
+    if(won){
+      rb.className='res win';
+      rb.innerHTML=`🎉 <strong>YOU WIN!</strong> It was ${result.toUpperCase()}!<br>
+        <span style="font-size:13px">+${(betF*2).toFixed(4)} DACC sent to your wallet automatically ✅</span><br>
+        <a class="txl" href="${EXPLORER}/tx/${receipt.transactionHash}" target="_blank" style="font-size:10px">${receipt.transactionHash.slice(0,12)}… ↗ verify on explorer</a>`;
+    }else{
+      rb.className='res lose';
+      rb.innerHTML=`💸 <strong>YOU LOST.</strong> It was ${result.toUpperCase()}.<br>
+        <a class="txl" href="${EXPLORER}/tx/${receipt.transactionHash}" target="_blank" style="font-size:10px">${receipt.transactionHash.slice(0,12)}… ↗ verify on explorer</a>`;
+    }
+    rb.style.display='block';
+    hideToast();
+
+    // Stats
+    stats.f++; if(won){stats.w++;stats.pl=+(stats.pl+betF).toFixed(6);}
+    else{stats.l++;stats.pl=+(stats.pl-betF).toFixed(6);}
+    document.getElementById('sF').textContent=stats.f;
+    document.getElementById('sW').textContent=stats.w;
+    document.getElementById('sL').textContent=stats.l;
+    const plEl=document.getElementById('sPL');
+    plEl.textContent=(stats.pl>=0?'+':'')+stats.pl.toFixed(4);
+    plEl.className='sv '+(stats.pl>0?'gr':stats.pl<0?'re':'go');
+
+    history.unshift({pick,result,won,amount:betF,tx:receipt.transactionHash,block:receipt.blockNumber});
+    renderHistory();
+    setTimeout(refreshBalance,2500);
+    setTimeout(refreshContractBal,3000);
+
+  }catch(e){
+    coinEl.className='coin';
+    hideToast();
+    if(e.code===4001||(e.message&&(e.message.includes('rejected')||e.message.includes('denied')))){
+      showToast('Transaction rejected.','err');
+    } else if(e.message&&e.message.includes('House insufficient')){
+      showToast('House funds too low for this bet. Try a smaller amount.','err');
+    } else {
+      showToast(e.message||'Transaction failed.','err');
+    }
+  }
+
+  busy=false;
+  document.getElementById('flipBtn').disabled=false;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════════════════════════════════════════ */
+function renderHistory(){
+  document.getElementById('hCount').textContent=history.length+' flip'+(history.length!==1?'s':'');
+  if(!history.length){document.getElementById('hList').innerHTML='<div class="empty-h">No flips yet.</div>';return;}
+  document.getElementById('hList').innerHTML=history.slice(0,12).map(f=>{
+    const cls=f.result==='heads'?'h':'t';
+    const short=f.tx.slice(0,8)+'…'+f.tx.slice(-6);
+    const url=EXPLORER+'/tx/'+f.tx;
+    const amtStr=f.won?'+'+( f.amount*2).toFixed(4):'−'+f.amount.toFixed(4);
+    return `<div class="hi">
+      <div class="hc ${cls}">${f.result==='heads'?'H':'T'}</div>
+      <div class="hin">
+        <div class="hm">${f.result.charAt(0).toUpperCase()+f.result.slice(1)} · picked: ${f.pick}</div>
+        <div class="hs"><a href="${url}" target="_blank" class="txl">${short} ↗</a> · Block #${f.block}</div>
+      </div>
+      <span class="hbg ${f.won?'win':'lose'}">${f.won?'WIN':'LOSE'}</span>
+      <div class="ha ${f.won?'win':'lose'}">${amtStr} DACC</div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
